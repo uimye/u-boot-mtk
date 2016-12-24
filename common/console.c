@@ -188,7 +188,7 @@ int tstc (void)
 void putc (const char c)
 {
 	DECLARE_GLOBAL_DATA_PTR;
-
+#if 0
 #ifdef CONFIG_SILENT_CONSOLE
 	if (gd->flags & GD_FLG_SILENT)
 		return;
@@ -200,13 +200,18 @@ void putc (const char c)
 	} else {
 		/* Send directly to the handler */
 		serial_putc (c);
+
 	}
+#endif
+
+		serial_putc (c);
+
 }
 
 void puts (const char *s)
 {
 	DECLARE_GLOBAL_DATA_PTR;
-
+#if 0
 #ifdef CONFIG_SILENT_CONSOLE
 	if (gd->flags & GD_FLG_SILENT)
 		return;
@@ -219,6 +224,9 @@ void puts (const char *s)
 		/* Send directly to the handler */
 		serial_puts (s);
 	}
+#endif
+
+		serial_puts (s);
 }
 
 void printf (const char *fmt, ...)
