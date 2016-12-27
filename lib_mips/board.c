@@ -131,6 +131,7 @@ void led_on(void);
 void led_off(void);
 int detect_wps(void);
 void gpio_test( void );
+void recovery_system(void);
 static void Init_System_Mode(void)
 {
 	u32 reg;
@@ -1970,8 +1971,19 @@ void board_init_r (gd_t *id, ulong dest_addr)
 	}
 	udelay(100000);
 	if ( counter > 7 ) {
-		printf( "\n\nAll GPIO test...\n\n");
-		gpio_test();
+	//	printf( "\n\nAll GPIO test...\n\n");
+	//	gpio_test();
+			char guarrant;
+			printf(" Warning!! recovery mode will Erase Linux in Flash then burn new one. Are you sure?(Y/N)\n");
+			guarrant = getc();
+			if (guarrant != 'y' && guarrant != 'Y') {
+				printf(" Operation terminated\n");
+				
+			}
+			else {
+				printf("enter recovery mode!\n");
+				recovery_system();
+			}
 	} else if( counter > 2) {
 		printf( "\n\nHTTP server is starting for update...\n\n");
 		eth_initialize(gd->bd);
@@ -2913,6 +2925,37 @@ int detect_wps( void )
 		printf("wps button pressed!\n");
 		return 1;
 	}
+}
+
+void recovery_system(void){
+        int ret=-1;
+	int addr=CFG_RECOVERY_ADDR;
+	 ulong load_addr = CFG_SPINAND_LOAD_ADDR;          
+	 ulong len,checksum;
+	image_header_t  *header=(image_header_t*)load_addr;
+	raspi_read(header, (char *)addr, sizeof(image_header_t));
+   if (ntohl(header->ih_magic) != IH_MAGIC)	{
+																 printf ("Bad Magic Number,%08X,recovery partition data is incorrect,please update recovery image \n",ntohl(header->ih_magic));
+																 do_reset(NULL,0,0,NULL);
+														       }
+//	addr = addr + sizeof(image_header_t);
+//	load_addr = load_addr + sizeof(image_header_t);
+	len  = ntohl(header->ih_size);
+	checksum = ntohl(header->ih_hcrc);									
+	header->ih_hcrc = 0;
+	if (crc32 (0, (char *)load_addr, sizeof(image_header_t)) != checksum) {
+		puts ("Bad Header Checksum,please update recovery image\n");
+		do_reset(NULL,0,0,NULL);
+	}
+	printf("image Header Checksum OK,start recovery firmware partition\n");
+	  //	raspi_read((char*)load_addr, addr, len);
+	ret= raspi_read((char *)CFG_SPINAND_LOAD_ADDR, CFG_RECOVERY_ADDR-CFG_FLASH_BASE, len+sizeof(image_header_t));
+	 ret= raspi_erase_write((char *)CFG_SPINAND_LOAD_ADDR, CFG_KERN_ADDR-CFG_FLASH_BASE,len+sizeof(image_header_t));
+	printf("recovery system partition completed from recovery partition!\n");
+	printf("rebooting system.......\n");
+	do_reset(NULL,0,0,NULL);
+
+
 }
 void gpio_test( void )
 {

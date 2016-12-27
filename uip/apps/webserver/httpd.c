@@ -239,6 +239,7 @@ PT_THREAD(handle_output(struct httpd_state *s))
 	  length -= CFG_HTTP_DL_ADDR;
 	  printf( "\n\n****************************\n*FIRMWARE UPGRADING*\n* DO NOT POWER OFF YOUR ROUTER! *\n****************************\n\n" );
 	  raspi_erase_write((u8 *)CFG_HTTP_DL_ADDR, CFG_KERN_ADDR-CFG_FLASH_BASE, length);
+	  raspi_erase_write((u8 *)CFG_HTTP_DL_ADDR, CFG_RECOVERY_ADDR-CFG_FLASH_BASE, length);
 	  printf("HTTP ugrade firmware done! Rebooting...\n\n");
 	  /* reset the board */
 	  do_reset(NULL, 0, 0, NULL);
