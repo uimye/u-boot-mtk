@@ -318,7 +318,7 @@ PT_THREAD(handle_output(struct httpd_state *s))
 	  raspi_erase_write((u8 *)CFG_HTTP_DL_ADDR, CFG_RECOVERY_ADDR-CFG_FLASH_BASE, length);
 	  printf("HTTP ugrade firmware done! Rebooting...\n\n");
 	  /* reset the board */
-	  do_reset(NULL, 0, 0, NULL);
+	  //do_reset(NULL, 0, 0, NULL);
 
   }
   else if(strncmp(s->filename, http_uboot_cgi, sizeof(http_uboot_cgi)) == 0)
@@ -328,7 +328,7 @@ PT_THREAD(handle_output(struct httpd_state *s))
 	  raspi_erase_write((u8 *)CFG_HTTP_DL_ADDR, CFG_FLASH_BASE - CFG_FLASH_BASE, WEBFAILSAFE_UPLOAD_UBOOT_SIZE_IN_BYTES);
 	  printf("HTTP ugrade uboot done! Rebooting...\n\n");
 	  /* reset the board */
-	  do_reset(NULL, 0, 0, NULL);
+	  //do_reset(NULL, 0, 0, NULL);
 
   }
   else if(strncmp(s->filename, http_art_cgi, sizeof(http_art_cgi)) == 0)
@@ -338,7 +338,7 @@ PT_THREAD(handle_output(struct httpd_state *s))
 	  raspi_erase_write((u8 *)CFG_HTTP_DL_ADDR, CFG_FACTORY_ADDR - CFG_FLASH_BASE, WEBFAILSAFE_UPLOAD_ART_SIZE_IN_BYTES);
 	  printf("HTTP ugrade Factory done! Rebooting...\n\n");
 	  /* reset the board */
-	  do_reset(NULL, 0, 0, NULL);
+	  //do_reset(NULL, 0, 0, NULL);
 
   }
   else if(!httpd_fs_open(s->filename, &s->file)) {//没有找到对应的页面  
