@@ -64,7 +64,7 @@
 #include <common.h>
 #include <configs/rt2880.h>
 #include <command.h>
-
+#include <spi_api.h>
 #define STATE_WAITING 0
 #define STATE_OUTPUT  1
 
@@ -76,6 +76,8 @@
 #define ISO_period  0x2e  //"."	
 #define ISO_slash   0x2f  //"/"
 #define ISO_colon   0x3a  //":"
+static const unsigned char base64_table[65] =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 
 char content_boundary[80]; /* winfred: length should be the same as inputbuf */
@@ -85,18 +87,92 @@ char content_boundary[80]; /* winfred: length should be the same as inputbuf */
 #define WEBFAILSAFE_UPLOAD_ART_SIZE_IN_BYTES		(64 * 1024)
 
 /*---------------------------------------------------------------------------*/
+
+unsigned char * base64_encode(const unsigned char *src, size_t len,
+		                              size_t *out_len)
+{
+	        unsigned char *out, *pos;
+		        const unsigned char *end, *in;
+			        size_t olen;
+				        int line_len;
+
+					        olen = len * 4 / 3 + 4; /* 3-byte blocks to 4-byte */
+						        olen += olen / 72; /* line feeds */
+							        olen++; /* nul termination */
+								        if (olen < len)
+										                return NULL; /* integer overflow */
+									        out = malloc(olen);
+										        if (out == NULL)
+												                return NULL;
+
+											        end = src + len;
+												        in = src;
+													        pos = out;
+														        line_len = 0;
+															        while (end - in >= 3) {
+																	                *pos++ = base64_table[in[0] >> 2];
+																			                *pos++ = base64_table[((in[0] & 0x03) << 4) | (in[1] >> 4)];
+																					                *pos++ = base64_table[((in[1] & 0x0f) << 2) | (in[2] >> 6)];
+																							                *pos++ = base64_table[in[2] & 0x3f];
+																									                in += 3;
+																											                line_len += 4;
+																													                if (line_len >= 72) {
+																																                        *pos++ = '\n';
+																																			                        line_len = 0;
+																																						                }
+																															        }
+
+																        if (end - in) {
+																		                *pos++ = base64_table[in[0] >> 2];
+																				                if (end - in == 1) {
+																							                        *pos++ = base64_table[(in[0] & 0x03) << 4];
+																										                        *pos++ = '=';
+																													                } else {
+																																                        *pos++ = base64_table[((in[0] & 0x03) << 4) |
+																																				                                              (in[1] >> 4)];
+																																			                        *pos++ = base64_table[(in[1] & 0x0f) << 2];
+																																						                }
+																						                *pos++ = '=';
+																								                line_len += 4;
+																										        }
+ if (line_len)
+	                 *pos++ = '\n';
+
+         *pos = '\0';
+	         if (out_len)
+			                 *out_len = pos - out;
+		         return out;
+}
+
 static unsigned short
 generate_part_of_file(void *state)
 {
   struct httpd_state *s = (struct httpd_state *)state;
-
+   int i=0,j=0,k=0;
   if(s->file.len > uip_mss()) {
     s->len = uip_mss();
   } else {
     s->len = s->file.len;
   }
-  memcpy(uip_appdata, s->file.data, s->len);
   
+  memcpy(uip_appdata, s->file.data, s->len);
+  for(i=0;i<s->len;i++)
+  {
+	  if(*((unsigned char*)uip_appdata+i)==0x31&&*((unsigned char*)uip_appdata+i+1)==0x32&&*((unsigned char*)uip_appdata+i+2)==0x33&&*((unsigned char*)uip_appdata+i+3)==0x34&&*((unsigned char*)uip_appdata+i+4)==0x35)
+	{
+		unsigned char mac_addr[10],dst_len;
+		unsigned char *mac_addr_base64;
+		raspi_read(mac_addr, CFG_FACTORY_ADDR-CFG_FLASH_BASE+4, 6);
+		mac_addr_base64 = base64_encode(mac_addr,6,&dst_len);
+		for(k = (s->len)-2; k > i+5 ;k--){
+			*((unsigned char*)uip_appdata+k+dst_len-6+1) = *((unsigned char*)uip_appdata+k);
+		}
+		for(j=0;j<dst_len;j++){
+			*((unsigned char*)uip_appdata+i+j) = *(mac_addr_base64+j);
+		}
+		break;
+	}
+  }
   return s->len;
 }
 /*---------------------------------------------------------------------------*/
