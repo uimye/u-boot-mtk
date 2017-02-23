@@ -504,7 +504,7 @@ extern unsigned int  CFG_BLOCKSIZE;
 // U-Boot partition size and offset
 #define WEBFAILSAFE_UPLOAD_UBOOT_ADDRESS		CFG_FLASH_BASE
 
-#define WEBFAILSAFE_UPLOAD_UBOOT_SIZE_IN_BYTES		( 128 * 1024 )
+#define WEBFAILSAFE_UPLOAD_UBOOT_SIZE_IN_BYTES		( 164 * 1024 )
 #define UPDATE_SCRIPT_UBOOT_SIZE_IN_BYTES		"0x20000"
 
 // Firmware partition offset

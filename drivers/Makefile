@@ -85,6 +85,7 @@ endif
 ifeq ($(MTK_MSDC), ON)
 OBJS	+= msdc/mmc_core.o msdc/mmc_test.o msdc/msdc.o msdc/msdc_cust.o msdc/ts_msdc.o
 endif
+OBJS   += i2c_sn3236_leds.o 
 
 all:	$(LIB)
 

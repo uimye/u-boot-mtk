@@ -78,12 +78,16 @@
 #define ISO_colon   0x3a  //":"
 static const unsigned char base64_table[65] =
         "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+extern unsigned char PWM_RED[];
+extern unsigned char PWM_GREEN[];
 
+extern void sn3236_init(void);
+extern void SN3236_OUT_SW(void);
+extern void SN3236_OUT_PWM(unsigned char *pwm); 
 
 char content_boundary[80]; /* winfred: length should be the same as inputbuf */
-// U-Boot partition size
-#define WEBFAILSAFE_UPLOAD_UBOOT_SIZE_IN_BYTES		(128 * 1024)
-// ART partition size
+// U-Boot partition size#define WEBFAILSAFE_UPLOAD_UBOOT_SIZE_IN_BYTES		(128 * 1024)
+#define WEBFAILSAFE_UPLOAD_UBOOT_SIZE_IN_BYTES		(164 * 1024)
 #define WEBFAILSAFE_UPLOAD_ART_SIZE_IN_BYTES		(64 * 1024)
 
 /*---------------------------------------------------------------------------*/
@@ -310,6 +314,9 @@ PT_THREAD(handle_output(struct httpd_state *s))
   PT_BEGIN(&s->outputpt);
   if(strncmp(s->filename, http_firmware_cgi, sizeof(http_firmware_cgi)) == 0)
   {
+	sn3236_init();                                                                                                      
+	SN3236_OUT_SW();
+	SN3236_OUT_PWM(PWM_RED);
 
 	  length = simple_strtoul(content_boundary, NULL, 16);
 	  length -= CFG_HTTP_DL_ADDR;
@@ -317,28 +324,36 @@ PT_THREAD(handle_output(struct httpd_state *s))
 	  raspi_erase_write((u8 *)CFG_HTTP_DL_ADDR, CFG_KERN_ADDR-CFG_FLASH_BASE, length);
 	  raspi_erase_write((u8 *)CFG_HTTP_DL_ADDR, CFG_RECOVERY_ADDR-CFG_FLASH_BASE, length);
 	  printf("HTTP ugrade firmware done! Rebooting...\n\n");
-	  /* reset the board */
+	SN3236_OUT_PWM(PWM_GREEN);
 	  //do_reset(NULL, 0, 0, NULL);
 
   }
   else if(strncmp(s->filename, http_uboot_cgi, sizeof(http_uboot_cgi)) == 0)
   {
-
+         
+	sn3236_init();                                                                                                      
+	SN3236_OUT_SW();
+	SN3236_OUT_PWM(PWM_RED);
 	  printf( "\n\n****************************\n*U-BOOT UPGRADING*\n* DO NOT POWER OFF YOUR ROUTER! *\n****************************\n\n" );
 	  raspi_erase_write((u8 *)CFG_HTTP_DL_ADDR, CFG_FLASH_BASE - CFG_FLASH_BASE, WEBFAILSAFE_UPLOAD_UBOOT_SIZE_IN_BYTES);
 	  printf("HTTP ugrade uboot done! Rebooting...\n\n");
 	  /* reset the board */
-	  //do_reset(NULL, 0, 0, NULL);
+	SN3236_OUT_PWM(PWM_GREEN);
+	//  do_reset(NULL, 0, 0, NULL);
 
   }
   else if(strncmp(s->filename, http_art_cgi, sizeof(http_art_cgi)) == 0)
   {
 
+	sn3236_init();                                                                                                      
+	SN3236_OUT_SW();
+	SN3236_OUT_PWM(PWM_RED);
 	  printf( "\n\n****************************\n*Factory  UPGRADING*\n* DO NOT POWER OFF YOUR ROUTER! *\n****************************\n\n" );
 	  raspi_erase_write((u8 *)CFG_HTTP_DL_ADDR, CFG_FACTORY_ADDR - CFG_FLASH_BASE, WEBFAILSAFE_UPLOAD_ART_SIZE_IN_BYTES);
 	  printf("HTTP ugrade Factory done! Rebooting...\n\n");
 	  /* reset the board */
-	  //do_reset(NULL, 0, 0, NULL);
+	SN3236_OUT_PWM(PWM_GREEN);
+//	  do_reset(NULL, 0, 0, NULL);
 
   }
   else if(!httpd_fs_open(s->filename, &s->file)) {//没有找到对应的页面  

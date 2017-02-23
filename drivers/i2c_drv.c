@@ -22,7 +22,7 @@
 #include <command.h>
 #include <rt_mmap.h>
 
-#if (CONFIG_COMMANDS & CFG_CMD_I2C) 
+//#if (CONFIG_COMMANDS & CFG_CMD_I2C) 
 
 #if defined (RT6855A_ASIC_BOARD) || defined (RT6855A_FPGA_BOARD)
 #define BBU_I2C
@@ -42,18 +42,18 @@
 /*---------------------------------------------------------------------*/
 
 #define RT2880_REG(x)			(*((volatile u32 *)(x)))
-
-#define RT2880_I2C_CONFIG_REG		(RALINK_I2C_BASE+0x00)
-#define RT2880_I2C_CLKDIV_REG		(RALINK_I2C_BASE+0x04)
-#define RT2880_I2C_DEVADDR_REG		(RALINK_I2C_BASE+0x08)
-#define RT2880_I2C_ADDR_REG		(RALINK_I2C_BASE+0x0C)
-#define RT2880_I2C_DATAOUT_REG	 	(RALINK_I2C_BASE+0x10)
-#define RT2880_I2C_DATAIN_REG  		(RALINK_I2C_BASE+0x14)
-#define RT2880_I2C_STATUS_REG  		(RALINK_I2C_BASE+0x18)
-#define RT2880_I2C_STARTXFR_REG		(RALINK_I2C_BASE+0x1C)
-#define RT2880_I2C_BYTECNT_REG		(RALINK_I2C_BASE+0x20)
-#define RT2880_I2C_SM0_IS_AUTOMODE	(RALINK_I2C_BASE+0x28)
-#define RT2880_I2C_SM0CTL0		(RALINK_I2C_BASE+0x40)
+#define RALINK_I2C_BASE1   RALINK_SYSCTL_BASE+0x900             
+#define RT2880_I2C_CONFIG_REG		(RALINK_I2C_BASE1+0x00)
+#define RT2880_I2C_CLKDIV_REG		(RALINK_I2C_BASE1+0x04)
+#define RT2880_I2C_DEVADDR_REG		(RALINK_I2C_BASE1+0x08)
+#define RT2880_I2C_ADDR_REG		(RALINK_I2C_BASE1+0x0C)
+#define RT2880_I2C_DATAOUT_REG	 	(RALINK_I2C_BASE1+0x10)
+#define RT2880_I2C_DATAIN_REG  		(RALINK_I2C_BASE1+0x14)
+#define RT2880_I2C_STATUS_REG  		(RALINK_I2C_BASE1+0x18)
+#define RT2880_I2C_STARTXFR_REG		(RALINK_I2C_BASE1+0x1C)
+#define RT2880_I2C_BYTECNT_REG		(RALINK_I2C_BASE1+0x20)
+#define RT2880_I2C_SM0_IS_AUTOMODE	(RALINK_I2C_BASE1+0x28)
+#define RT2880_I2C_SM0CTL0		(RALINK_I2C_BASE1+0x40)
 
 /* I2C_CFG register bit field */
 #define I2C_CFG_ADDRLEN_8				(7<<5)	/* 8 bits */
@@ -88,11 +88,12 @@
 //connected to PCI-E/USB3 DTB
 #define CONFIG_EEPROM_ADDRESS_BYTES  1
 #endif
-
+#if 0
 #if (CONFIG_EEPROM_ADDRESS_BYTES == 2)
 #define ADDRESS_BYTES	2
 #else
 #define ADDRESS_BYTES	1
+#endif
 #endif
 
 /* 
@@ -118,7 +119,8 @@
 #define WRITE_CMD	0x00
 
 
-#define I2C_CFG_DEFAULT			(I2C_CFG_ADDRLEN_8  | \
+#define ADDRESS_BYTES	1
+#define I2C_CFG_DEFAULT			(I2C_CFG_ADDRLEN_8| \
 								 I2C_CFG_DEVADLEN_7 | \
 								 I2C_CFG_ADDRDIS)
 
@@ -136,12 +138,10 @@ static void i2c_write(u32 address, u8 *data, u32 nbytes);
 static void i2c_read(u8 *data, u32 nbytes);
 
 void i2c_master_init(void);
-
-
 /*---------------------------------------------------------------------*/
 /* External Variable Definitions                                       */
 /*---------------------------------------------------------------------*/
-u32 i2c_devaddr = 0x50;
+u32 i2c_devaddr = (0x78>>1);
 
 
 
@@ -156,6 +156,9 @@ u32 i2c_devaddr = 0x50;
 /*----------------------------------------------------------------------*/
 void i2c_master_init(void)
 {
+
+	RT2880_REG(RT2880_GPIOMODE_REG) &= ~(3 << 20);
+
 #ifndef BBU_I2C
 	/* reset i2c block */
 	u32 val = RT2880_REG(RT2880_RSTCTRL_REG);
@@ -166,10 +169,11 @@ void i2c_master_init(void)
 	RT2880_REG(RT2880_RSTCTRL_REG) = val;
 	udelay(500);
 #endif
-	
 	RT2880_REG(RT2880_I2C_CONFIG_REG) = I2C_CFG_DEFAULT;
 
-#if defined (MT7621_ASIC_BOARD) || defined (MT7621_FPGA_BOARD)
+	RT2880_REG(RT2880_I2C_CLKDIV_REG)=CLKDIV_VALUE;
+#if 1
+//#if defined (MT7621_ASIC_BOARD) || defined (MT7621_FPGA_BOARD)
 	val = 1 << 31; // the output is pulled hight by SIF master 0
 	val |= 1 << 28; // allow triggered in VSYNC pulse
 	val |= CLKDIV_VALUE << 16; //clk div
@@ -369,18 +373,33 @@ static inline void random_write_block(u32 address, u8 *data)
 	i2c_write(address, data, WRITE_BLOCK);
 	udelay(5000);
 }
-
-static inline void random_write_one_byte(u32 address, u8 *data)
-{	
-	/* change page */
+void random_write_nbytes(u32 address, u8 *data,u8 num){
+	 /* change page */
+#if 0
 	if (ADDRESS_BYTES == 1) {
 		int page;
-		
+		page = ((address >> 8) & 0x7) << 1;
+	/* device* id* always* 0 */
+		RT2880_REG(RT2880_I2C_DEVADDR_REG) = (i2c_devaddr | (page >> 1));
+	}        
+#endif	
+		RT2880_REG(RT2880_I2C_DEVADDR_REG) = i2c_devaddr;
+	i2c_write(address, data, num);
+	udelay(5000);
+
+}
+void random_write_one_byte(u32 address, u8 *data)
+{	
+	/* change page */
+#if 0
+	if (ADDRESS_BYTES == 1) {
+		int page;		
 		page = ((address >> 8) & 0x7) << 1;
 		/* device id always 0 */
 		RT2880_REG(RT2880_I2C_DEVADDR_REG) = (i2c_devaddr | (page >> 1));
 	}
-
+#endif
+		RT2880_REG(RT2880_I2C_DEVADDR_REG) = i2c_devaddr;
 	i2c_write(address, data, 1);
 	udelay(5000);
 }
@@ -506,4 +525,4 @@ U_BOOT_CMD(
 	"NOTE -- size is 1, 2, 4 bytes only, offset and value are in hex\n"
 );
 
-#endif
+//#endif

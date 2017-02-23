@@ -106,6 +106,11 @@ extern ulong load_addr; /* Default Load Address */
 unsigned long mips_cpu_feq;
 unsigned long mips_bus_feq;
 
+extern unsigned char PWM_YELLOW[];
+
+extern void sn3236_init(void);
+extern void SN3236_OUT_SW(void);
+extern void SN3236_OUT_PWM(unsigned char *pwm); 
 
 /*
  * Begin and End of memory area for malloc(), and current "brk"
@@ -115,6 +120,9 @@ static ulong mem_malloc_end;
 static ulong mem_malloc_brk;
 
 static char  file_name_space[ARGV_LEN];
+
+
+
 
 #define read_32bit_cp0_register_with_select1(source)            \
 ({ int __res;                                                   \
@@ -1985,6 +1993,9 @@ void board_init_r (gd_t *id, ulong dest_addr)
 				recovery_system();
 			}
 	} else if( counter > 2) {
+    	sn3236_init();
+    	SN3236_OUT_SW();
+    	SN3236_OUT_PWM(PWM_YELLOW);
 		printf( "\n\nHTTP server is starting for update...\n\n");
 		eth_initialize(gd->bd);
 		run_command("uip start", 0); //add by mleaf
