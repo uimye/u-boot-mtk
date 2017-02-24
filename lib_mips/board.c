@@ -107,7 +107,9 @@ unsigned long mips_cpu_feq;
 unsigned long mips_bus_feq;
 
 extern unsigned char PWM_YELLOW[];
+extern unsigned char PWM_RED[];
 
+extern void i2c_master_init(void);
 extern void sn3236_init(void);
 extern void SN3236_OUT_SW(void);
 extern void SN3236_OUT_PWM(unsigned char *pwm); 
@@ -1962,9 +1964,13 @@ void board_init_r (gd_t *id, ulong dest_addr)
 	}
 /*web failsafe*/
 	gpio_init();
+    i2c_master_init();
+    sn3236_init();
+    int web_flag = 0;
+    int recovery_flag = 0;
 	printf( "\nif you press the WPS button for more than 2 seconds will automatically enter the Update mode,more than 7 seconds enter gpio test mode\n");
 	int counter = 0;
-	for(i=0;i<10;i++){
+	for(i=0;i<20;i++){
 		led_on();
 		udelay(100000);
 		led_off();
@@ -1972,13 +1978,37 @@ void board_init_r (gd_t *id, ulong dest_addr)
 		printf( "\n%d",i);
 		if(detect_wps())
 		{
-		counter++;
+            printf("detect_wps = 1111111111111111 \n");
+		    counter++;
 		}
-		if(counter>7)
-		break;
+        else
+        {
+            printf("detect_wps = 0000000000000000 \n");
+        }
+        if (counter>4)
+        {
+            if (0 == web_flag)
+            {
+                web_flag = 1;
+            	SN3236_OUT_SW();
+            	SN3236_OUT_PWM(PWM_YELLOW);
+            }
+        }
+		if (counter>14)
+        {
+            if (0 == recovery_flag)
+            {
+                recovery_flag = 1;
+            	SN3236_OUT_SW();
+            	SN3236_OUT_PWM(PWM_RED);
+                break;
+            }
+        }
 	}
 	udelay(100000);
-	if ( counter > 7 ) {
+	if ( counter > 14 ) {
+    	SN3236_OUT_SW();
+    	SN3236_OUT_PWM(PWM_RED);
 	//	printf( "\n\nAll GPIO test...\n\n");
 	//	gpio_test();
 			char guarrant;
@@ -1992,11 +2022,10 @@ void board_init_r (gd_t *id, ulong dest_addr)
 				printf("enter recovery mode!\n");
 				recovery_system();
 			}
-	} else if( counter > 2) {
-    	sn3236_init();
+	} else if( counter > 4) {
     	SN3236_OUT_SW();
     	SN3236_OUT_PWM(PWM_YELLOW);
-		printf( "\n\nHTTP server is starting for update...\n\n");
+		printf( "\n\nHTTP server is starting for update... yellow \n\n");
 		eth_initialize(gd->bd);
 		run_command("uip start", 0); //add by mleaf
 	} else {

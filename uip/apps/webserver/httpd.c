@@ -65,6 +65,7 @@
 #include <configs/rt2880.h>
 #include <command.h>
 #include <spi_api.h>
+#include <i2c.h>
 #define STATE_WAITING 0
 #define STATE_OUTPUT  1
 
