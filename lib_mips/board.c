@@ -1970,6 +1970,7 @@ void board_init_r (gd_t *id, ulong dest_addr)
     int recovery_flag = 0;
 	printf( "\nif you press the WPS button for more than 2 seconds will automatically enter the Update mode,more than 7 seconds enter gpio test mode\n");
 	int counter = 0;
+    int skips = 0;
 	for(i=0;i<20;i++){
 		led_on();
 		udelay(100000);
@@ -1984,7 +1985,14 @@ void board_init_r (gd_t *id, ulong dest_addr)
         else
         {
             printf("detect_wps = 0000000000000000 \n");
+            skips++;
         }
+        
+        if (skips > 4)
+        {
+            break;
+        }
+        
         if (counter>4)
         {
             if (0 == web_flag)
